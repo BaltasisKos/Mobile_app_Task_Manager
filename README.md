@@ -18,16 +18,3 @@
 * [TypeScript](https://www.typescriptlang.org/)
 * [Expo Vector Icons](https://icons.expo.fyi/)
 
-## 📂 Δομή Φακέλων
-
-```text
-├── app/                  # Routes & Navigation logic
-│   ├── (tabs)/           # Main App Screens (Home, Profile κλπ)
-│   ├── _layout.tsx       # Root Stack Navigator
-│   └── index.tsx         # Entry point (Redirects to Login)
-├── src/
-│   ├── Pages/            # Πραγματικός κώδικας των σελίδων (UI)
-│   │   ├── Login.tsx     # Σελίδα Εισόδου
-│   │   └── Home.tsx      # Αρχική Σελίδα
-│   └── components/       # Επαναχρησιμοποιούμενα στοιχεία
-└── assets/               # Εικόνες, Γραμματοσειρές και Icons
