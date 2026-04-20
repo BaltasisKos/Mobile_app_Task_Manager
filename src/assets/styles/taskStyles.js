@@ -62,6 +62,41 @@ export const taskStyles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
+  },
+  modalOverlay: { 
+    flex: 1, 
+    backgroundColor: 'rgba(0,0,0,0.5)', 
+    justifyContent: 'center', 
+    alignItems: 'center' 
+  },
+  modalBox: { 
+    width: '85%', 
+    backgroundColor: 'white', 
+    padding: 25, 
+    borderRadius: 20 
+  },
+  modalTitle: { 
+    fontSize: 18, 
+    fontWeight: 'bold', 
+    marginBottom: 15, 
+    textAlign: 'center' 
+  },
+  input: { 
+    borderBottomWidth: 1.5, 
+    borderColor: '#0066FF', 
+    marginBottom: 25, 
+    padding: 10, 
+    fontSize: 16 
+  },
+  btnCancel: { 
+    padding: 10 
+  },
+  btnSave: { 
+    backgroundColor: '#0066FF', 
+    padding: 12, 
+    borderRadius: 10, 
+    minWidth: 100, 
+    alignItems: 'center' 
   }
 
 });

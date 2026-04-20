@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react"; // Προστέθηκε το useEffect
 import {
   Animated,
   Dimensions,
@@ -11,13 +11,17 @@ import {
   TouchableOpacity,
   View,
   ScrollView,
-  FlatList
+  FlatList,
+  TextInput,
+  StyleSheet
 } from "react-native";
 
 import { styles } from "../../src/assets/styles/homeStyles";
+import { taskStyles } from "../assets/styles/taskStyles"
 import MyCalendar from "../components/MyCalendar";
-import TaskItem from "../components/TaskItem";
-import AddTaskButton from "../components/AddTaskButton";
+import { TaskItem, AddTaskButton } from "../components/TaskItem";
+
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width } = Dimensions.get("window");
 
@@ -29,13 +33,84 @@ export default function Home() {
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [activeTab, setActiveTab] = useState<"tasks" | "calendar">("tasks");
   const [selectedDate, setSelectedDate] = useState("");
+  
+  // Task States
+  const [tasks, setTasks] = useState<any[]>([]); 
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [taskText, setTaskText] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
 
-  // Προσωρινά δεδομένα για τα Tasks (Mock Data)
-  const [tasks, setTasks] = useState([
-    { id: "1", title: "Σχεδιασμός UI", time: "10:00 AM", isCompleted: false },
-    { id: "2", title: "Meeting με πελάτη", time: "12:30 PM", isCompleted: true },
-    { id: "3", title: "Γυμναστήριο", time: "06:00 PM", isCompleted: false },
-  ]);
+  // --- 1. LOAD DATA ---
+  useEffect(() => {
+    const loadTasks = async () => {
+      try {
+        const savedTasks = await AsyncStorage.getItem('@my_tasks');
+        if (savedTasks !== null) {
+          setTasks(JSON.parse(savedTasks));
+        }
+      } catch (e) {
+        console.error("Failed to load tasks", e);
+      }
+    };
+    loadTasks();
+  }, []);
+
+  // --- 2. SAVE & UPDATE LOGIC ---
+  const saveAndRefresh = async (updatedTasks: any[]) => {
+    setTasks(updatedTasks); // Ενημερώνουμε την οθόνη αμέσως
+    try {
+      await AsyncStorage.setItem('@my_tasks', JSON.stringify(updatedTasks));
+    } catch (e) {
+      console.error("Failed to save to storage", e);
+    }
+  };
+
+  // ΔΙΟΡΘΩΜΕΝΗ ΔΙΑΓΡΑΦΗ
+  const deleteTask = (id: string) => {
+    const updatedTasks = tasks.filter(task => task.id !== id);
+    saveAndRefresh(updatedTasks);
+  };
+
+  const toggleTaskCompletion = (id: string) => {
+    const updatedTasks = tasks.map(task => 
+      task.id === id ? { ...task, isCompleted: !task.isCompleted } : task
+    );
+    saveAndRefresh(updatedTasks);
+  };
+
+  const handleSaveTask = () => {
+    if (taskText.trim() === "") return;
+
+    let updated;
+    if (editingId) {
+      updated = tasks.map(t => t.id === editingId ? { ...t, title: taskText } : t);
+    } else {
+      const newTask = {
+        id: Date.now().toString(),
+        title: taskText,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        isCompleted: false,
+      };
+      updated = [...tasks, newTask];
+    }
+    
+    saveAndRefresh(updated);
+    setIsModalVisible(false);
+    setTaskText("");
+    setEditingId(null);
+  };
+
+  const openEditModal = (task: any) => {
+    setEditingId(task.id);
+    setTaskText(task.title);
+    setIsModalVisible(true);
+  };
+
+  const openAddModal = () => {
+    setEditingId(null);
+    setTaskText("");
+    setIsModalVisible(true);
+  };
 
   // --- ANIMATION LOGIC ---
   const animValue = useRef(new Animated.Value(0)).current;
@@ -65,12 +140,6 @@ export default function Home() {
   const handleLogout = () => {
     setMenuVisible(false);
     router.replace("/");
-  };
-
-  const toggleTaskCompletion = (id: string) => {
-    setTasks(tasks.map(task => 
-      task.id === id ? { ...task, isCompleted: !task.isCompleted } : task
-    ));
   };
 
   return (
@@ -127,6 +196,8 @@ export default function Home() {
                     time={item.time}
                     isCompleted={item.isCompleted}
                     onToggle={() => toggleTaskCompletion(item.id)}
+                    onDelete={() => deleteTask(item.id)}
+                    onEdit={() => openEditModal(item)}
                   />
                 )}
                 contentContainerStyle={{ paddingTop: 20, paddingBottom: 100 }}
@@ -145,9 +216,33 @@ export default function Home() {
       {/* --- FLOATING ACTION BUTTON --- */}
       {activeTab === "tasks" && (
         <AddTaskButton 
-          onPress={() => console.log("Άνοιγμα Modal Προσθήκης...")} 
+          onPress={openAddModal} 
         />
       )}
+
+      {/* --- EDIT / ADD MODAL --- */}
+      <Modal visible={isModalVisible} animationType="fade" transparent={true}>
+        <View style={taskStyles.modalOverlay}>
+          <View style={taskStyles.modalBox}>
+            <Text style={styles.modalTitle}>{editingId ? "Επεξεργασία" : "Νέο Task"}</Text>
+            <TextInput
+              style={taskStyles.input}
+              placeholder="Γράψτε εδώ..."
+              value={taskText}
+              onChangeText={setTaskText}
+              autoFocus
+            />
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+              <TouchableOpacity onPress={() => setIsModalVisible(false)} style={taskStyles.btnCancel}>
+                <Text>Ακύρωση</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={handleSaveTask} style={taskStyles.btnSave}>
+                <Text style={{ color: 'white', fontWeight: 'bold' }}>Αποθήκευση</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* --- ANIMATED SIDEBAR --- */}
       <Modal
@@ -244,3 +339,5 @@ export default function Home() {
     </SafeAreaView>
   );
 }
+
+
